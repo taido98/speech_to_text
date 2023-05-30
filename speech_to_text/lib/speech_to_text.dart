@@ -667,6 +667,12 @@ class SpeechToText {
     }
   }
 
+  void _onRecordData(Uint8List data) {
+    if (_recordData != null) {
+      _recordData!(data);
+    }
+  }
+
   void _onSoundLevelChange(double level) {
     if (isNotListening) {
       return;
