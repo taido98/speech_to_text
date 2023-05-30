@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:flutter_test/flutter_test.dart';
+
 import 'speech_to_text_platform_interface.dart';
 
 const MethodChannel _channel =
-    MethodChannel('plugin.csdcorp.com/speech_to_text');
+MethodChannel('plugin.csdcorp.com/speech_to_text');
 
 /// An implementation of [SpeechToTextPlatform] that uses method channels.
 class MethodChannelSpeechToText extends SpeechToTextPlatform {
@@ -14,6 +17,7 @@ class MethodChannelSpeechToText extends SpeechToTextPlatform {
   static const String notifyErrorMethod = 'notifyError';
   static const String notifyStatusMethod = 'notifyStatus';
   static const String soundLevelChangeMethod = "soundLevelChange";
+  static const String recordDataMethod = 'recordData';
 
   /// Returns true if the user has already granted permission to access the
   /// microphone, does not prompt the user.
@@ -28,6 +32,15 @@ class MethodChannelSpeechToText extends SpeechToTextPlatform {
     return await _channel.invokeMethod<bool>('has_permission') ?? false;
   }
 
+  Future<bool> hasRecordPermission() async {
+    return await _channel.invokeMethod<bool>('has_record_permission') ?? false;
+  }
+
+  @override
+  Future<bool> hasSpeechPermission() async {
+    return await _channel.invokeMethod<bool>('has_speech_permission') ?? false;
+  }
+
   @override
   Future<bool> initialize(
       {debugLogging = false, List<SpeechConfigOption>? options}) async {
@@ -37,9 +50,9 @@ class MethodChannelSpeechToText extends SpeechToTextPlatform {
     };
     options?.forEach((option) => params[option.name] = option.value);
     return await _channel.invokeMethod<bool>(
-          'initialize',
-          params,
-        ) ??
+      'initialize',
+      params,
+    ) ??
         false;
   }
 
@@ -97,12 +110,11 @@ class MethodChannelSpeechToText extends SpeechToTextPlatform {
   /// crashes
   ///
   @override
-  Future<bool> listen(
-      {String? localeId,
-      partialResults = true,
-      onDevice = false,
-      int listenMode = 0,
-      sampleRate = 0}) async {
+  Future<bool> listen({String? localeId,
+    partialResults = true,
+    onDevice = false,
+    int listenMode = 0,
+    sampleRate = 0}) async {
     Map<String, dynamic> listenParams = {
       "partialResults": partialResults,
       "onDevice": onDevice,
@@ -113,6 +125,26 @@ class MethodChannelSpeechToText extends SpeechToTextPlatform {
       listenParams["localeId"] = localeId;
     }
     return await _channel.invokeMethod<bool>('listen', listenParams) ?? false;
+  }
+
+  @override
+  Future<bool> recordSound({int sampleRate = 0}) async {
+    Map<String, dynamic> listenParams = {
+      "sampleRate": sampleRate,
+    };
+
+    return await _channel.invokeMethod<bool>('record_sound', listenParams) ??
+        false;
+  }
+
+  @override
+  Future<void> stopRecord() async {
+    await _channel.invokeMethod('stop_record');
+  }
+
+  @override
+  Future<void> cancelRecord() async {
+    await _channel.invokeMethod('cancel_record');
   }
 
   /// returns the list of speech locales available on the device.
@@ -143,6 +175,11 @@ class MethodChannelSpeechToText extends SpeechToTextPlatform {
       case soundLevelChangeMethod:
         if (call.arguments is double && null != onSoundLevel) {
           onSoundLevel!(call.arguments);
+        }
+        break;
+      case recordDataMethod:
+        if (call.arguments is Uint8List && null != onRecordData) {
+          onRecordData!(call.arguments);
         }
         break;
       default:

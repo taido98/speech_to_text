@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -55,6 +56,7 @@ abstract class SpeechToTextPlatform extends PlatformInterface {
   void Function(String error)? onError;
   void Function(String status)? onStatus;
   void Function(double level)? onSoundLevel;
+  void Function(Uint8List data)? onRecordData;
 
   /// Returns true if the user has already granted permission to access the
   /// microphone, does not prompt the user.
@@ -66,6 +68,18 @@ abstract class SpeechToTextPlatform extends PlatformInterface {
   /// denied them permission in the past.
   Future<bool> hasPermission() {
     throw UnimplementedError('hasPermission() has not been implemented.');
+  }
+
+  Future<bool> hasRecordPermission() {
+    throw UnimplementedError('hasRecordPermission() has not been implemented.');
+  }
+
+  Future<bool> hasSpeechPermission() {
+    throw UnimplementedError('hasSpeechPermission() has not been implemented.');
+  }
+
+  Future<bool> isSpeechAvailable() {
+    throw UnimplementedError('isSpeechAvailable() has not been implemented.');
   }
 
   /// Initialize speech recognition services, returns true if
@@ -145,6 +159,18 @@ abstract class SpeechToTextPlatform extends PlatformInterface {
       int listenMode = 0,
       sampleRate = 0}) {
     throw UnimplementedError('listen() has not been implemented.');
+  }
+
+  Future<bool> recordSound({int sampleRate = 0}) {
+    throw UnimplementedError('recordSound() has not been implemented.');
+  }
+
+  Future<void> stopRecord() {
+    throw UnimplementedError('stopRecord() has not been implemented.');
+  }
+
+  Future<void> cancelRecord() {
+    throw UnimplementedError('cancelRecord() has not been implemented.');
   }
 
   /// returns the list of speech locales available on the device.

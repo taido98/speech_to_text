@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
@@ -73,6 +74,8 @@ typedef SpeechStatusListener = void Function(String status);
 /// the [listen] method for use.
 typedef SpeechSoundLevelChange = Function(double level);
 
+typedef SpeechRecordData = Function(Uint8List data);
+
 /// An interface to device specific speech recognition services.
 ///
 /// The general flow of a speech recognition session is as follows:
@@ -92,6 +95,7 @@ class SpeechToText {
   static const String notifyErrorMethod = 'notifyError';
   static const String notifyStatusMethod = 'notifyStatus';
   static const String soundLevelChangeMethod = 'soundLevelChange';
+  static const String recordDataMethod = 'recordData';
   static const String listeningStatus = 'listening';
   static const String notListeningStatus = 'notListening';
   static const String doneStatus = 'done';
@@ -180,6 +184,7 @@ class SpeechToText {
   SpeechErrorListener? errorListener;
   SpeechStatusListener? statusListener;
   SpeechSoundLevelChange? _soundLevelChange;
+  SpeechRecordData? _recordData;
 
   factory SpeechToText() => _instance;
 
@@ -285,9 +290,18 @@ class SpeechToText {
     SpeechToTextPlatform.instance.onError = _onNotifyError;
     SpeechToTextPlatform.instance.onStatus = _onNotifyStatus;
     SpeechToTextPlatform.instance.onSoundLevel = _onSoundLevelChange;
+    SpeechToTextPlatform.instance.onRecordData = _onRecordData;
     _initWorked = await SpeechToTextPlatform.instance
         .initialize(debugLogging: debugLogging, options: options);
     return _initWorked;
+  }
+
+  Future<bool> hasRecordPermission() async {
+    return await SpeechToTextPlatform.instance.hasRecordPermission();
+  }
+
+  Future<bool> hasSpeechPermission() async {
+    return await SpeechToTextPlatform.instance.hasSpeechPermission();
   }
 
   /// Stops the current listen for speech if active, does nothing if not.
@@ -435,6 +449,34 @@ class SpeechToText {
       throw ListenFailedException(e.message, e.details, e.stacktrace);
     }
   }
+
+  Future recordSound({
+    SpeechRecordData? onRecordData,
+    int sampleRate = 0,
+  }) async {
+    if (!_initWorked) {
+      throw SpeechToTextNotInitializedException();
+    }
+
+    _recordData = onRecordData;
+    _userEnded = false;
+    _lastSpeechResult = null;
+    _recognized = false;
+    try {
+      await SpeechToTextPlatform.instance.recordSound(sampleRate: sampleRate);
+    } on PlatformException catch (e) {
+      throw ListenFailedException(e.details);
+    }
+  }
+
+  Future<void> stopRecord() async {
+    await SpeechToTextPlatform.instance.stopRecord();
+  }
+
+  Future<void> cancelRecord() async {
+    await SpeechToTextPlatform.instance.cancelRecord();
+  }
+
 
   void _setupListenAndPause(
       Duration? initialPauseFor, Duration? initialListenFor) {
